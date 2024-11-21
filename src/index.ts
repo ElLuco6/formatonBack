@@ -61,7 +61,7 @@ app.post("/formations", async (req: Request, res: Response) => {
   }
 });
 
-//Route pour mettre à jour les noms enregistrés (registeredNames) d'une formation
+// Route pour mettre à jour les noms enregistrés (registeredNames) d'une formation
 app.patch(
   "/formations/:id/registeredNames",
   async (req: Request, res: Response): Promise<Response> => {
@@ -89,7 +89,71 @@ app.patch(
   }
 );
 
-//Démarrer le serveur
+// Route pour récupérer toutes les classes
+app.get("/classes", async (req: Request, res: Response) => {
+  try {
+    const classes = await prisma.class.findMany();
+    return res.json(classes);
+  } catch (err) {
+    return res.status(500).json({
+      error: "Erreur lors de la récupération des classes",
+      details: err,
+    });
+  }
+});
+
+// Route pour récupérer une classe par son ID
+app.get("/classes/:id", async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const classDetails = await prisma.class.findUnique({
+      where: { id: Number(id) },
+      include: { eleves: true }, // Inclure les élèves associés à la classe
+    });
+
+    if (!classDetails) {
+      return res.status(404).json({ error: "Classe non trouvée" });
+    }
+
+    return res.json(classDetails);
+  } catch (err) {
+    return res.status(500).json({
+      error: "Erreur lors de la récupération de la classe",
+      details: err,
+    });
+  }
+});
+
+// Route pour créer une nouvelle classe
+app.post("/classes", async (req: Request, res: Response) => {
+  const { type, date, formationId, nbEleves } = req.body;
+
+  if (!type || !date || !formationId || !nbEleves) {
+    return res.status(400).json({
+      error:
+        "Les champs 'type', 'date', 'formationId' et 'nbEleves' sont requis.",
+    });
+  }
+
+  try {
+    const newClass = await prisma.class.create({
+      data: {
+        type,
+        date,
+        formationId,
+        nbEleves,
+      },
+    });
+    return res.status(201).json(newClass);
+  } catch (err) {
+    return res.status(500).json({
+      error: "Erreur lors de la création de la classe",
+      details: err,
+    });
+  }
+});
+
+// Démarrer le serveur
 app.listen(port, () => {
   console.log(`Serveur en cours d'exécution sur http://localhost:${port}`);
 });
