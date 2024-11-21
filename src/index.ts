@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
-const cors = require('cors');
+const cors = require("cors");
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -89,43 +89,43 @@ app.patch(
   }
 );
 
-// Route pour récupérer toutes les classes
-app.get("/classes", async (req: Request, res: Response) => {
+// Route pour récupérer toutes les sessions
+app.get("/sessions", async (req: Request, res: Response) => {
   try {
-    const classes = await prisma.class.findMany();
-    return res.json(classes);
+    const sessions = await prisma.session.findMany();
+    return res.json(sessions);
   } catch (err) {
     return res.status(500).json({
-      error: "Erreur lors de la récupération des classes",
+      error: "Erreur lors de la récupération des sessions",
       details: err,
     });
   }
 });
 
-// Route pour récupérer une classe par son ID
-app.get("/classes/:id", async (req: Request, res: Response) => {
+// Route pour récupérer une session par son ID
+app.get("/sessions/:id", async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
-    const classDetails = await prisma.class.findUnique({
+    const sessionDetails = await prisma.session.findUnique({
       where: { id: Number(id) },
-      include: { eleves: true }, // Inclure les élèves associés à la classe
+      include: { eleves: true }, // Inclure les élèves associés à la session
     });
 
-    if (!classDetails) {
-      return res.status(404).json({ error: "Classe non trouvée" });
+    if (!sessionDetails) {
+      return res.status(404).json({ error: "Session non trouvée" });
     }
 
-    return res.json(classDetails);
+    return res.json(sessionDetails);
   } catch (err) {
     return res.status(500).json({
-      error: "Erreur lors de la récupération de la classe",
+      error: "Erreur lors de la récupération de la session",
       details: err,
     });
   }
 });
 
-// Route pour créer une nouvelle classe
-app.post("/classes", async (req: Request, res: Response) => {
+// Route pour créer une nouvelle session
+app.post("/sessions", async (req: Request, res: Response) => {
   const { type, date, formationId, nbEleves } = req.body;
 
   if (!type || !date || !formationId || !nbEleves) {
@@ -136,7 +136,7 @@ app.post("/classes", async (req: Request, res: Response) => {
   }
 
   try {
-    const newClass = await prisma.class.create({
+    const newSession = await prisma.session.create({
       data: {
         type,
         date,
@@ -144,10 +144,10 @@ app.post("/classes", async (req: Request, res: Response) => {
         nbEleves,
       },
     });
-    return res.status(201).json(newClass);
+    return res.status(201).json(newSession);
   } catch (err) {
     return res.status(500).json({
-      error: "Erreur lors de la création de la classe",
+      error: "Erreur lors de la création de la session",
       details: err,
     });
   }

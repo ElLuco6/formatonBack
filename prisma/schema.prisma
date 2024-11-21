@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Class {
+model Session {
   id            Int      @id @default(autoincrement()) // Identifiant unique
   type          String   @db.VarChar(100)              // Type de session (ex. Cours, Atelier)
   date          DateTime // Date de la session
@@ -20,8 +20,8 @@ model Class {
 model Eleve {
   id             Int      @id @default(autoincrement())
   nom            String   // Nom de l'élève
-  classeId       Int      // Lien vers la classe associée
-  classe         Class    @relation(fields: [classeId], references: [id]) // Relation inverse avec Class
+  sessionId      Int      // Lien vers la session associée
+  session        Session  @relation(fields: [sessionId], references: [id]) // Relation inverse avec Session
 }
 
 model Formation {
@@ -33,6 +33,5 @@ model Formation {
   price           Decimal   @db.Decimal(10, 2)
   registeredNames String[]  @default([]) @map("registered_names")
   createdAt       DateTime  @default(now()) @map("created_at")
-  classes         Class[]   // Relation avec Class
+  sessions        Session[] // Relation avec Session
 }
-
