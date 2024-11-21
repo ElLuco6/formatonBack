@@ -29,3 +29,8 @@ Thumbs.db
 # Tests
 coverage/
 .nyc_output/
+
+# Prisma
+prisma/migrations/
+prisma/dev.db
+prisma/dev.db-journal

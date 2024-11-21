@@ -9,3 +9,5 @@ Un backend léger et rapide développé avec **Express.js** et **TypeScript**.
 - **dotenv** : Gestion des variables d'environnement.
 - **nodemon** : Rechargement automatique en développement.
 
+## Installation
+
