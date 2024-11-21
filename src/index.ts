@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
+const cors = require('cors');
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -14,6 +15,7 @@ const port = process.env.PORT || 3000;
 
 // Middleware pour parser JSON
 app.use(express.json());
+app.use(cors());
 
 // Route pour récupérer toutes les formations
 app.get("/formations", async (req: Request, res: Response) => {
