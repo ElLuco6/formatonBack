@@ -1,6 +1,8 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 const cors = require("cors");
 
 // Charger les variables d'environnement
@@ -37,6 +39,44 @@ app.get("/formations", async (req: Request, res: Response) => {
     );
     return res.status(500).json({
       error: "Erreur lors de la récupération des formations",
+      details: err,
+    });
+  }
+});
+
+// Route pour récupérer une formation par son ID
+app.get("/formations/:id", async (req: Request, res: Response) => {
+  console.log(
+    `[${new Date().toISOString()}] GET /formations/${
+      req.params.id
+    } - Début de la requête`
+  );
+  const { id } = req.params;
+
+  try {
+    const formation = await prisma.formation.findUnique({
+      where: { id: Number(id) },
+      include: { sessions: true }, // Inclure les sessions associées
+    });
+
+    if (!formation) {
+      console.log(
+        `[${new Date().toISOString()}] GET /formations/${id} - Formation non trouvée`
+      );
+      return res.status(404).json({ error: "Formation non trouvée" });
+    }
+
+    console.log(
+      `[${new Date().toISOString()}] GET /formations/${id} - Formation trouvée`
+    );
+    return res.json(formation);
+  } catch (err) {
+    console.error(
+      `[${new Date().toISOString()}] GET /formations/${id} - Erreur:`,
+      err
+    );
+    return res.status(500).json({
+      error: "Erreur lors de la récupération de la formation",
       details: err,
     });
   }
@@ -128,21 +168,27 @@ app.get("/formations/search/:name", async (req: Request, res: Response) => {
 app.patch(
   "/formations/:id/registeredNames",
   async (req: Request, res: Response): Promise<Response> => {
-    console.log(`[${new Date().toISOString()}] PATCH /formations/${req.params.id}/registeredNames - Début de la mise à jour`);
+    console.log(
+      `[${new Date().toISOString()}] PATCH /formations/${
+        req.params.id
+      }/registeredNames - Début de la mise à jour`
+    );
     const { id } = req.params;
     const { registeredName } = req.body; // On attend maintenant un seul nom
 
-    if (typeof registeredName !== 'string') {
-      console.log(`[${new Date().toISOString()}] PATCH /formations/${id}/registeredNames - Format invalide`);
-      return res
-        .status(400)
-        .json({ error: "'registeredName' doit être une chaîne de caractères." });
+    if (typeof registeredName !== "string") {
+      console.log(
+        `[${new Date().toISOString()}] PATCH /formations/${id}/registeredNames - Format invalide`
+      );
+      return res.status(400).json({
+        error: "'registeredName' doit être une chaîne de caractères.",
+      });
     }
 
     try {
       // Récupérer d'abord la formation existante
       const formation = await prisma.formation.findUnique({
-        where: { id: Number(id) }
+        where: { id: Number(id) },
       });
 
       if (!formation) {
@@ -158,10 +204,15 @@ app.patch(
         data: { registeredNames: updatedNames },
       });
 
-      console.log(`[${new Date().toISOString()}] PATCH /formations/${id}/registeredNames - Mise à jour réussie`);
+      console.log(
+        `[${new Date().toISOString()}] PATCH /formations/${id}/registeredNames - Mise à jour réussie`
+      );
       return res.json(updatedFormation);
     } catch (err) {
-      console.error(`[${new Date().toISOString()}] PATCH /formations/${id}/registeredNames - Erreur:`, err);
+      console.error(
+        `[${new Date().toISOString()}] PATCH /formations/${id}/registeredNames - Erreur:`,
+        err
+      );
       return res.status(500).json({
         error: "Erreur lors de la mise à jour des noms enregistrés",
         details: err,
@@ -172,27 +223,36 @@ app.patch(
 
 // Route pour supprimer une formation et ses sessions associées
 app.delete("/formations/:id", async (req: Request, res: Response) => {
-  console.log(`[${new Date().toISOString()}] DELETE /formations/${req.params.id} - Début de la suppression`);
+  console.log(
+    `[${new Date().toISOString()}] DELETE /formations/${
+      req.params.id
+    } - Début de la suppression`
+  );
   const { id } = req.params;
 
   try {
     // Supprimer d'abord toutes les sessions associées
     await prisma.session.deleteMany({
-      where: { formationId: Number(id) }
+      where: { formationId: Number(id) },
     });
 
     // Puis supprimer la formation
     const deletedFormation = await prisma.formation.delete({
-      where: { id: Number(id) }
+      where: { id: Number(id) },
     });
 
-    console.log(`[${new Date().toISOString()}] DELETE /formations/${id} - Formation et sessions supprimées avec succès`);
+    console.log(
+      `[${new Date().toISOString()}] DELETE /formations/${id} - Formation et sessions supprimées avec succès`
+    );
     return res.json({
       message: "Formation et sessions associées supprimées avec succès",
-      deletedFormation
+      deletedFormation,
     });
   } catch (err) {
-    console.error(`[${new Date().toISOString()}] DELETE /formations/${id} - Erreur:`, err);
+    console.error(
+      `[${new Date().toISOString()}] DELETE /formations/${id} - Erreur:`,
+      err
+    );
     return res.status(500).json({
       error: "Erreur lors de la suppression de la formation",
       details: err,
@@ -233,7 +293,6 @@ app.get("/sessions/:id", async (req: Request, res: Response) => {
   try {
     const sessionDetails = await prisma.session.findUnique({
       where: { id: Number(id) },
-      include: { eleves: true }, // Inclure les élèves associés à la session
     });
 
     if (!sessionDetails) {
@@ -305,34 +364,227 @@ app.post("/sessions", async (req: Request, res: Response) => {
 
 // Route pour supprimer une session
 app.delete("/sessions/:id", async (req: Request, res: Response) => {
-  console.log(`[${new Date().toISOString()}] DELETE /sessions/${req.params.id} - Début de la suppression`);
+  console.log(
+    `[${new Date().toISOString()}] DELETE /sessions/${
+      req.params.id
+    } - Début de la suppression`
+  );
   const { id } = req.params;
 
   try {
     // Vérifier si la session existe
     const session = await prisma.session.findUnique({
-      where: { id: Number(id) }
+      where: { id: Number(id) },
     });
 
     if (!session) {
-      console.log(`[${new Date().toISOString()}] DELETE /sessions/${id} - Session non trouvée`);
+      console.log(
+        `[${new Date().toISOString()}] DELETE /sessions/${id} - Session non trouvée`
+      );
       return res.status(404).json({ error: "Session non trouvée" });
     }
 
     // Supprimer la session
     const deletedSession = await prisma.session.delete({
-      where: { id: Number(id) }
+      where: { id: Number(id) },
     });
 
-    console.log(`[${new Date().toISOString()}] DELETE /sessions/${id} - Session supprimée avec succès`);
+    console.log(
+      `[${new Date().toISOString()}] DELETE /sessions/${id} - Session supprimée avec succès`
+    );
     return res.json({
       message: "Session supprimée avec succès",
-      deletedSession
+      deletedSession,
     });
   } catch (err) {
-    console.error(`[${new Date().toISOString()}] DELETE /sessions/${id} - Erreur:`, err);
+    console.error(
+      `[${new Date().toISOString()}] DELETE /sessions/${id} - Erreur:`,
+      err
+    );
     return res.status(500).json({
       error: "Erreur lors de la suppression de la session",
+      details: err,
+    });
+  }
+});
+
+// Route pour ajouter un élève à une session
+app.patch("/sessions/:id/eleves", async (req: Request, res: Response) => {
+  console.log(
+    `[${new Date().toISOString()}] PATCH /sessions/${
+      req.params.id
+    }/eleves - Début de la mise à jour`
+  );
+  const { id } = req.params;
+  const { eleveName } = req.body;
+
+  if (!eleveName || typeof eleveName !== "string") {
+    return res.status(400).json({
+      error:
+        "Le nom de l'élève est requis et doit être une chaîne de caractères",
+    });
+  }
+
+  try {
+    // Récupérer d'abord la session existante
+    const session = await prisma.session.findUnique({
+      where: { id: Number(id) },
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: "Session non trouvée" });
+    }
+
+    // Vérifier si l'élève est déjà inscrit
+    if (session.eleves.includes(eleveName)) {
+      return res
+        .status(400)
+        .json({ error: "L'élève est déjà inscrit à cette session" });
+    }
+
+    // Ajouter le nouvel élève à la liste existante
+    const updatedEleves = [...session.eleves, eleveName];
+
+    // Mettre à jour la session avec la nouvelle liste et le nombre d'élèves
+    const updatedSession = await prisma.session.update({
+      where: { id: Number(id) },
+      data: {
+        eleves: updatedEleves,
+        nbEleves: updatedEleves.length,
+      },
+    });
+
+    console.log(
+      `[${new Date().toISOString()}] PATCH /sessions/${id}/eleves - Mise à jour réussie`
+    );
+    return res.json(updatedSession);
+  } catch (err) {
+    console.error(
+      `[${new Date().toISOString()}] PATCH /sessions/${id}/eleves - Erreur:`,
+      err
+    );
+    return res.status(500).json({
+      error: "Erreur lors de l'ajout de l'élève",
+      details: err,
+    });
+  }
+});
+
+// Route pour l'inscription (register)
+app.post("/register", async (req: Request, res: Response) => {
+  console.log(
+    `[${new Date().toISOString()}] POST /auth/register - Nouvelle inscription`
+  );
+  const { name, password, admin } = req.body;
+
+  if (!name || !password) {
+    return res
+      .status(400)
+      .json({ error: "Le nom et le mot de passe sont requis" });
+  }
+
+  try {
+    // Vérifier si l'utilisateur existe déjà
+    const existingUser = await prisma.user.findUnique({
+      where: { name },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: "Cet utilisateur existe déjà" });
+    }
+
+    // Hasher le mot de passe
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Créer le nouvel utilisateur avec le statut admin
+    const user = await prisma.user.create({
+      data: {
+        name,
+        password: hashedPassword,
+        isAdmin: admin || false, // Utilise la valeur de admin ou false par défaut
+      },
+    });
+
+    // Générer le token JWT avec le statut admin
+    const token = jwt.sign(
+      { userId: user.id, name: user.name, isAdmin: user.isAdmin },
+      process.env.JWT_SECRET || "default_secret",
+      { expiresIn: "24h" }
+    );
+
+    return res.status(201).json({
+      message: "Utilisateur créé avec succès",
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        isAdmin: user.isAdmin,
+      },
+    });
+  } catch (err) {
+    console.error(
+      `[${new Date().toISOString()}] POST /auth/register - Erreur:`,
+      err
+    );
+    return res.status(500).json({
+      error: "Erreur lors de la création de l'utilisateur",
+      details: err,
+    });
+  }
+});
+
+// Route pour la connexion (login)
+app.post("/login", async (req: Request, res: Response) => {
+  console.log(
+    `[${new Date().toISOString()}] POST /auth/login - Tentative de connexion`
+  );
+  const { name, password } = req.body;
+
+  if (!name || !password) {
+    return res
+      .status(400)
+      .json({ error: "Le nom et le mot de passe sont requis" });
+  }
+
+  try {
+    // Rechercher l'utilisateur
+    const user = await prisma.user.findUnique({
+      where: { name },
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: "Identifiants invalides" });
+    }
+
+    // Vérifier le mot de passe
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ error: "Identifiants invalides" });
+    }
+
+    // Générer le token JWT
+    const token = jwt.sign(
+      { userId: user.id, name: user.name, isAdmin: user.isAdmin },
+      process.env.JWT_SECRET || "default_secret",
+      { expiresIn: "24h" }
+    );
+
+    return res.json({
+      message: "Connexion réussie",
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        isAdmin: user.isAdmin,
+      },
+    });
+  } catch (err) {
+    console.error(
+      `[${new Date().toISOString()}] POST /auth/login - Erreur:`,
+      err
+    );
+    return res.status(500).json({
+      error: "Erreur lors de la connexion",
       details: err,
     });
   }

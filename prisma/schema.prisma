@@ -14,14 +14,7 @@ model Session {
   formationId   Int      // Lien vers la formation associée
   formation     Formation @relation(fields: [formationId], references: [id]) // Relation avec Formation
   nbEleves      Int      // Nombre d'élèves inscrits (calculé automatiquement)
-  eleves        Eleve[]   // Liste des élèves inscrits à cette session
-}
-
-model Eleve {
-  id             Int      @id @default(autoincrement())
-  nom            String   // Nom de l'élève
-  sessionId      Int      // Lien vers la session associée
-  session        Session  @relation(fields: [sessionId], references: [id]) // Relation inverse avec Session
+  eleves        String[]   @default([]) @map("eleves") // Liste des élèves inscrits
 }
 
 model Formation {
@@ -34,4 +27,12 @@ model Formation {
   registeredNames String[]  @default([]) @map("registered_names")
   createdAt       DateTime  @default(now()) @map("created_at")
   sessions        Session[] // Relation avec Session
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  password  String
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
 }
