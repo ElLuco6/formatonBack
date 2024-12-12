@@ -324,7 +324,7 @@ app.post("/sessions", async (req: Request, res: Response) => {
     `[${new Date().toISOString()}] POST /sessions - Nouvelle session:`,
     req.body
   );
-  const { type, date, formationId, nbEleves } = req.body;
+  const { type, date, formationId, nbEleves, eleves } = req.body;
 
   if (!type || !date || !formationId || !nbEleves) {
     console.log(
@@ -343,6 +343,7 @@ app.post("/sessions", async (req: Request, res: Response) => {
         date,
         formationId,
         nbEleves,
+        eleves: eleves || [], // Utilise le tableau d'élèves fourni ou un tableau vide par défaut
       },
     });
     console.log(
