@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
 
 // Créer l'application Express
 const app = express();
-const port = process.env.PORT || 3000;
+const port = parseInt(process.env.PORT as string, 10) || 3001;
 
 // Middleware pour parser JSON
 app.use(express.json());
@@ -158,7 +158,7 @@ export { app };
 
 // Démarrer le serveur seulement si ce n'est pas un test
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(port, () => {
-    console.log(`Serveur en cours d'exécution sur http://localhost:${port}`);
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Serveur en cours d'exécution sur http://0.0.0.0:${port}`);
   });
 }
