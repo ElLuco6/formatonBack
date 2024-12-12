@@ -153,7 +153,12 @@ app.post("/sessions", async (req: Request, res: Response) => {
   }
 });
 
-// Démarrer le serveur
-app.listen(port, () => {
-  console.log(`Serveur en cours d'exécution sur http://localhost:${port}`);
-});
+// Exporter l'app pour les tests
+export { app };
+
+// Démarrer le serveur seulement si ce n'est pas un test
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(port, () => {
+    console.log(`Serveur en cours d'exécution sur http://localhost:${port}`);
+  });
+}
