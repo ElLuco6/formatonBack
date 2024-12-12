@@ -128,37 +128,40 @@ app.get("/formations/search/:name", async (req: Request, res: Response) => {
 app.patch(
   "/formations/:id/registeredNames",
   async (req: Request, res: Response): Promise<Response> => {
-    console.log(
-      `[${new Date().toISOString()}] PATCH /formations/${
-        req.params.id
-      }/registeredNames - Début de la mise à jour`
-    );
+    console.log(`[${new Date().toISOString()}] PATCH /formations/${req.params.id}/registeredNames - Début de la mise à jour`);
     const { id } = req.params;
-    const { registeredNames } = req.body;
+    const { registeredName } = req.body; // On attend maintenant un seul nom
 
-    if (!Array.isArray(registeredNames)) {
-      console.log(
-        `[${new Date().toISOString()}] PATCH /formations/${id}/registeredNames - Format invalide`
-      );
+    if (typeof registeredName !== 'string') {
+      console.log(`[${new Date().toISOString()}] PATCH /formations/${id}/registeredNames - Format invalide`);
       return res
         .status(400)
-        .json({ error: "'registeredNames' doit être un tableau." });
+        .json({ error: "'registeredName' doit être une chaîne de caractères." });
     }
 
     try {
+      // Récupérer d'abord la formation existante
+      const formation = await prisma.formation.findUnique({
+        where: { id: Number(id) }
+      });
+
+      if (!formation) {
+        return res.status(404).json({ error: "Formation non trouvée" });
+      }
+
+      // Ajouter le nouveau nom à la liste existante
+      const updatedNames = [...formation.registeredNames, registeredName];
+
+      // Mettre à jour la formation avec la nouvelle liste
       const updatedFormation = await prisma.formation.update({
         where: { id: Number(id) },
-        data: { registeredNames },
+        data: { registeredNames: updatedNames },
       });
-      console.log(
-        `[${new Date().toISOString()}] PATCH /formations/${id}/registeredNames - Mise à jour réussie`
-      );
+
+      console.log(`[${new Date().toISOString()}] PATCH /formations/${id}/registeredNames - Mise à jour réussie`);
       return res.json(updatedFormation);
     } catch (err) {
-      console.error(
-        `[${new Date().toISOString()}] PATCH /formations/${id}/registeredNames - Erreur:`,
-        err
-      );
+      console.error(`[${new Date().toISOString()}] PATCH /formations/${id}/registeredNames - Erreur:`, err);
       return res.status(500).json({
         error: "Erreur lors de la mise à jour des noms enregistrés",
         details: err,
@@ -166,6 +169,36 @@ app.patch(
     }
   }
 );
+
+// Route pour supprimer une formation et ses sessions associées
+app.delete("/formations/:id", async (req: Request, res: Response) => {
+  console.log(`[${new Date().toISOString()}] DELETE /formations/${req.params.id} - Début de la suppression`);
+  const { id } = req.params;
+
+  try {
+    // Supprimer d'abord toutes les sessions associées
+    await prisma.session.deleteMany({
+      where: { formationId: Number(id) }
+    });
+
+    // Puis supprimer la formation
+    const deletedFormation = await prisma.formation.delete({
+      where: { id: Number(id) }
+    });
+
+    console.log(`[${new Date().toISOString()}] DELETE /formations/${id} - Formation et sessions supprimées avec succès`);
+    return res.json({
+      message: "Formation et sessions associées supprimées avec succès",
+      deletedFormation
+    });
+  } catch (err) {
+    console.error(`[${new Date().toISOString()}] DELETE /formations/${id} - Erreur:`, err);
+    return res.status(500).json({
+      error: "Erreur lors de la suppression de la formation",
+      details: err,
+    });
+  }
+});
 
 // Route pour récupérer toutes les sessions
 app.get("/sessions", async (req: Request, res: Response) => {
