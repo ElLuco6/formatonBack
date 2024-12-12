@@ -303,6 +303,41 @@ app.post("/sessions", async (req: Request, res: Response) => {
   }
 });
 
+// Route pour supprimer une session
+app.delete("/sessions/:id", async (req: Request, res: Response) => {
+  console.log(`[${new Date().toISOString()}] DELETE /sessions/${req.params.id} - Début de la suppression`);
+  const { id } = req.params;
+
+  try {
+    // Vérifier si la session existe
+    const session = await prisma.session.findUnique({
+      where: { id: Number(id) }
+    });
+
+    if (!session) {
+      console.log(`[${new Date().toISOString()}] DELETE /sessions/${id} - Session non trouvée`);
+      return res.status(404).json({ error: "Session non trouvée" });
+    }
+
+    // Supprimer la session
+    const deletedSession = await prisma.session.delete({
+      where: { id: Number(id) }
+    });
+
+    console.log(`[${new Date().toISOString()}] DELETE /sessions/${id} - Session supprimée avec succès`);
+    return res.json({
+      message: "Session supprimée avec succès",
+      deletedSession
+    });
+  } catch (err) {
+    console.error(`[${new Date().toISOString()}] DELETE /sessions/${id} - Erreur:`, err);
+    return res.status(500).json({
+      error: "Erreur lors de la suppression de la session",
+      details: err,
+    });
+  }
+});
+
 // Exporter l'app pour les tests
 export { app };
 
